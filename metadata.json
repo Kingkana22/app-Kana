@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Kingkana APP",
+  "description": "An interactive simulation of an autonomous AI that evolves through user interaction. Engage in conversation and witness its traits adapt and grow in real-time, visualized through a dynamic neural interface.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

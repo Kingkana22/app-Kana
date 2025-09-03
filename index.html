@@ -2,11 +2,12 @@
 <html lang="en" class="">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50,5 C74.85,5 95,25.15 95,50 C95,74.85 74.85,95 50,95 C25.15,95 5,74.85 5,50 C5,25.15 25.15,5 50,5 Z' fill='%236366f1'/%3E%3Cpath d='M50,20 C66.57,20 80,33.43 80,50 C80,66.57 66.57,80 50,80 C33.43,80 20,66.57 20,50 C20,33.43 33.43,20 50,20 Z' fill='white'/%3E%3Ccircle cx='50' cy='50' r='10' fill='%236366f1'/%3E%3C/svg%3E" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#111827" media="(prefers-color-scheme: dark)">
-    <title>Autonomous Evolving AI</title>
+    <title>KAI - Personal AI Companion</title>
+    <meta name="description" content="A sophisticated, modular AI assistant designed for intelligent conversation, creative generation, in-depth analysis, and personalized memory retention.">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,6 +42,27 @@
         transform: scale(0, 0);
         opacity: .2;
         transition: 0s;
+      }
+      /* Custom scrollbar for webkit browsers */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #4f46e5;
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #4338ca;
+      }
+      .dark ::-webkit-scrollbar-thumb {
+        background: #818cf8;
+      }
+       .dark ::-webkit-scrollbar-thumb:hover {
+        background: #a78bfa;
       }
     </style>
   <script type="importmap">

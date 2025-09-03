@@ -1,6 +1,6 @@
 {
-  "name": "Copy of Kingkana APP",
-  "description": "An interactive simulation of an autonomous AI that evolves through user interaction. Engage in conversation and witness its traits adapt and grow in real-time, visualized through a dynamic neural interface.",
+  "name": "KAI - Personal AI Companion",
+  "description": "A sophisticated, modular AI assistant designed for intelligent conversation, creative generation, in-depth analysis, and personalized memory retention. Your personal AI, reimagined.",
   "requestFramePermissions": [
     "microphone"
   ]

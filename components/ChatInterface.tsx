@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage, AIMode, UserSelectableTool, AITool } from '../types';
-import { FiSend, FiCpu, FiCheckCircle, FiGitCommit, FiCode, FiAlertTriangle, FiSearch, FiTrendingUp, FiDollarSign, FiBriefcase, FiLink, FiUploadCloud, FiBookOpen, FiMic, FiMicOff, FiThumbsUp, FiThumbsDown } from 'react-icons/fi';
+import { FiSend, FiCpu, FiCheckCircle, FiGitCommit, FiCode, FiAlertTriangle, FiSearch, FiTrendingUp, FiDollarSign, FiBriefcase, FiLink, FiUploadCloud, FiBookOpen, FiMic, FiMicOff, FiThumbsUp, FiThumbsDown, FiCopy } from 'react-icons/fi';
 import { FaBrain, FaWrench, FaBuilding } from 'react-icons/fa';
 
 const ALL_MODES: AIMode[] = ['Safe', 'Edge', 'Hacker'];
@@ -26,20 +26,30 @@ interface AIMessageProps {
 const AIMessage: React.FC<AIMessageProps> = ({ msg, isLastMessage, onFeedback }) => {
     
     const renderTextWithMarkdown = (text: string) => {
-      const bolded = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      const withLineBreaks = bolded.replace(/\n/g, '<br />');
-      return <div dangerouslySetInnerHTML={{ __html: withLineBreaks }} />;
+      const processedText = text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        // Find blocks of list items and wrap them in <ul>
+        .replace(/((?:(?:^|\n)\s*[-*]\s+.*)+)/g, (match) => {
+            const listItems = match.trim().split('\n')
+                .map(item => `<li>${item.replace(/^\s*[-*]\s+/, '')}</li>`)
+                .join('');
+            return `<ul class="list-disc pl-5">${listItems}</ul>`;
+        })
+        .replace(/\n/g, '<br />')
+        .replace(/<br \/>\s*<ul>/g, '<ul>')
+        .replace(/<\/ul>\s*<br \/>/g, '</ul>');
+    
+      return <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: processedText }} />;
     }
 
     const PlanList: React.FC<{ items: string[] }> = ({ items }) => (
-        <ul className="space-y-2 mt-2">
+        <ol className="space-y-2 mt-2 list-decimal list-inside">
             {items.map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm">
-                    <FiCheckCircle className="text-green-500 flex-shrink-0 mt-1" />
-                    <span>{item}</span>
+                <li key={i} className="text-sm text-gray-700 dark:text-gray-300">
+                    {item}
                 </li>
             ))}
-        </ul>
+        </ol>
     );
 
     const CodeBlock: React.FC<{ code: string }> = ({ code }) => {
@@ -53,8 +63,11 @@ const AIMessage: React.FC<AIMessageProps> = ({ msg, isLastMessage, onFeedback })
         return (
             <div className="bg-gray-900 dark:bg-black/50 rounded-lg text-white font-mono text-sm">
                 <div className="flex justify-between items-center px-4 py-2 bg-gray-800 dark:bg-black/25 rounded-t-lg">
-                    <span className="text-gray-400">{codeLang}</span>
-                    <button onClick={handleCopy} className="text-gray-400 hover:text-white text-xs">{copied ? 'Copied!' : 'Copy'}</button>
+                    <span className="text-gray-400 text-xs">{codeLang || 'code'}</span>
+                    <button onClick={handleCopy} className="flex items-center gap-1.5 text-gray-400 hover:text-white text-xs transition-colors disabled:opacity-50">
+                        <FiCopy size={12} />
+                        {copied ? 'Copied!' : 'Copy'}
+                    </button>
                 </div>
                 <pre className="p-4 overflow-x-auto"><code>{cleanCode}</code></pre>
             </div>
@@ -101,7 +114,7 @@ const AIMessage: React.FC<AIMessageProps> = ({ msg, isLastMessage, onFeedback })
                 <div className="flex items-center font-bold text-sm mb-2">
                     <FiAlertTriangle className="mr-2" /> <span>Self-Correction Subroutine</span>
                 </div>
-                <div className="whitespace-pre-wrap text-sm">{renderTextWithMarkdown(msg.text)}</div>
+                <div>{renderTextWithMarkdown(msg.text)}</div>
             </div>
         );
     }
@@ -112,7 +125,7 @@ const AIMessage: React.FC<AIMessageProps> = ({ msg, isLastMessage, onFeedback })
                 <div className="flex items-center font-bold text-sm mb-2">
                     <FiBookOpen className="mr-2" /> <span>Self-Awareness Update</span>
                 </div>
-                <div className="whitespace-pre-wrap text-sm italic">{renderTextWithMarkdown(msg.text)}</div>
+                <div className="italic">{renderTextWithMarkdown(msg.text)}</div>
             </div>
         );
     }
@@ -154,7 +167,7 @@ const AIMessage: React.FC<AIMessageProps> = ({ msg, isLastMessage, onFeedback })
                 )}
 
                 {msg.text && (
-                    <div className="whitespace-pre-wrap">{renderTextWithMarkdown(msg.text)}</div>
+                    <div>{renderTextWithMarkdown(msg.text)}</div>
                 )}
                 
                 {msg.code && <CodeBlock code={msg.code} />}
@@ -197,10 +210,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatHistory, isLoading, o
   const [overrideMode, setOverrideMode] = useState<AIMode>();
   const [overrideTool, setOverrideTool] = useState<UserSelectableTool>('Auto-Select');
   const [isListening, setIsListening] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
+  const dragCounter = useRef(0);
 
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatHistory, isLoading]);
@@ -257,15 +272,27 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatHistory, isLoading, o
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+  const processFile = (file: File) => {
+    const validExtensions = ['.txt', '.js', '.py'];
+    const fileName = file.name;
+    const fileExtension = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
+
+    if (validExtensions.includes(fileExtension)) {
       const reader = new FileReader();
       reader.onload = (event) => {
         const fileContent = event.target?.result as string;
         setInput(prev => `${prev}\n\n--- START OF UPLOADED FILE: ${file.name} ---\n${fileContent}\n--- END OF UPLOADED FILE ---`);
       };
       reader.readAsText(file);
+    } else {
+        console.warn(`File type not supported: ${file.name}`);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processFile(file);
     }
     e.target.value = ''; // Reset file input
   };
@@ -276,6 +303,40 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatHistory, isLoading, o
       onSendMessage(input.trim(), { mode: overrideMode, tool: overrideTool });
       setInput('');
       setOverrideTool('Auto-Select');
+    }
+  };
+  
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounter.current = 0;
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFile(e.dataTransfer.files[0]);
+      e.dataTransfer.clearData();
     }
   };
 
@@ -318,7 +379,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatHistory, isLoading, o
             <Select label="Tool Override" value={overrideTool} onChange={e => setOverrideTool(e.target.value as UserSelectableTool)} options={ALL_TOOLS} />
         </div>
         <form onSubmit={handleSubmit} className="relative flex items-end gap-2">
-          <div className="relative flex-grow">
+          <div 
+            className="relative flex-grow"
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          >
+             {isDragging && (
+                <div className="absolute inset-0 bg-white/90 dark:bg-gray-900/90 z-10 flex items-center justify-center rounded-lg border-2 border-dashed border-indigo-500 pointer-events-none">
+                    <p className="font-bold text-indigo-600 dark:text-indigo-400">Drop text file to upload</p>
+                </div>
+            )}
             <textarea ref={textAreaRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e); }}} placeholder="Issue directive..." disabled={isLoading} className="w-full bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 rounded-lg p-3 pr-24 text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none overflow-y-hidden" rows={1} style={{maxHeight: '200px'}} autoFocus />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
               <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400" aria-label="Upload file"><FiUploadCloud size={20}/></button>
@@ -329,7 +401,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ chatHistory, isLoading, o
               )}
             </div>
           </div>
-          <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".txt,.js,.py,.html,.css,.json,.md"/>
+          <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".txt,.js,.py"/>
           <button type="submit" disabled={isLoading || !input.trim()} className="w-12 h-12 flex-shrink-0 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 flex items-center justify-center shadow-lg ripple" aria-label="Send message"><FiSend size={20} /></button>
         </form>
         {error && <p className="text-red-500 text-sm mt-2 text-center">{error}</p>}
